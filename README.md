@@ -19,6 +19,25 @@ node server.js
 
 Requires Node.js 18+.
 
+## Hosted vs opening the HTML file directly
+
+**Recommended: via the server** (`start.bat` → `http://localhost:3000`). Everything works:
+Download PDF, WhatsApp, default logo loads, and Email sends with the PDF attached
+(requires `.env` SMTP setup).
+
+**Fallback: double-clicking `index.html`** (opens as `file://`, no server). Works with limits:
+
+| Feature | Via server | Direct `file://` |
+| ------- | ---------- | ----------------- |
+| Editor, totals, invoice ID | Yes | Yes |
+| Download vector PDF | Yes | Yes (needs internet for CDN libs) |
+| WhatsApp send | Yes | Yes |
+| Default `logo.png` in PDF | Yes | No — it still shows in the editor, but browsers block local file reads so it can't embed into the PDF; upload a logo manually instead |
+| Email with PDF attached | Yes | No — falls back to opening your mail app with the invoice text; download the PDF and attach it yourself |
+
+Both modes need internet once per load for the jsPDF/qrcodejs CDN libraries.
+No data is stored in either mode.
+
 ## Email setup (for the Email button)
 
 Copy `.env.example` to `.env` and fill in your SMTP credentials:
