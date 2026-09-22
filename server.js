@@ -1,6 +1,11 @@
 // Invoice backend (stateless: no invoice storage)
 // Serves index.html + sends invoice emails via SMTP (Gmail). Run: npm install; npm start
-require('dotenv').config();
+require('dotenv').config(); // .env — real secrets (gitignored)
+try { // .env.local — optional overrides; only non-empty values win, so blanks never clobber .env
+  const fs = require('fs');
+  const parsed = require('dotenv').parse(fs.readFileSync('.env.local', 'utf8'));
+  for (const [k, v] of Object.entries(parsed)) { if (v !== '') process.env[k] = v; }
+} catch (e) { /* no .env.local — fine */ }
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
