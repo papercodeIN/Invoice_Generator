@@ -30,13 +30,13 @@ Download PDF, WhatsApp, default logo loads, and Email sends with the PDF attache
 | Feature | Via server | Direct `file://` |
 | ------- | ---------- | ----------------- |
 | Editor, totals, invoice ID | Yes | Yes |
-| Download vector PDF | Yes | Yes (needs internet for CDN libs) |
+| Download vector PDF | Yes | Yes |
 | WhatsApp send | Yes | Yes |
 | Default `logo.png` in PDF | Yes | No — it still shows in the editor, but browsers block local file reads so it can't embed into the PDF; upload a logo manually instead |
 | Email with PDF attached | Yes | No — falls back to opening your mail app with the invoice text; download the PDF and attach it yourself |
 
-Both modes need internet once per load for the jsPDF/qrcodejs CDN libraries.
-No data is stored in either mode.
+Both modes work fully offline, except features that inherently need internet
+(WhatsApp/Email sending). No data is stored in either mode.
 
 ## Email setup (for the Email button)
 
@@ -70,8 +70,9 @@ App passwords) and use it as `SMTP_PASS`. Never commit `.env` — it is gitignor
 | `start.bat` / `stop.bat` | Background launch / stop on Windows |
 | `.env.example` | Template for SMTP config (copy to `.env`) |
 | `logo.png` | Default logo (click it in the app to replace) |
+| `vendor/` | Local JS libraries: jsPDF 2.5.1 (PDF) + qrcodejs 1.0.0 (UPI QR) |
 
 ## Tech
 
-Frontend: vanilla JS + jsPDF (vector PDF) + qrcodejs, via CDN.
+Frontend: vanilla JS + jsPDF (vector PDF) + qrcodejs, bundled in `vendor/` (no CDN).
 Backend: Node.js + Express + nodemailer. No database.
