@@ -1,0 +1,15 @@
+{
+  "name": "invoice-generator",
+  "version": "1.0.0",
+  "description": "Stateless invoice generator with vector PDF and SMTP email send",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.14"
+  }
+}

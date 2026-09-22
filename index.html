@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Invoice Generator</title>
+<link rel="icon" href="data:,"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--fa-darker:#020604;--fa-dark:#0f3d26;--fa-accent:#4ADE4A;--fa-accent-deep:#0b3a25;--fa-accent-light:#d3ecd8;--fa-muted:#84a18c}
+*{box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+html,body{overflow-x:hidden}
+body{margin:0;background:var(--fa-darker);color:#111827}
+.topbar{background:var(--fa-dark);border-bottom:1px solid var(--fa-accent-deep);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+.topbar b{font-size:15px;color:#fff}.topbar span{font-size:12px;color:var(--fa-accent-light)}
+.layout{max-width:1180px;margin:18px auto;padding:0 12px;display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:20px;align-items:start}
+@media(max-width:1024px){.layout{grid-template-columns:minmax(0,1fr)}.side{position:static!important}}
+.paper{background:#fff;border:1px solid var(--fa-accent-light);border-radius:4px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,.06);min-width:0;overflow:hidden}
+@media(max-width:640px){.paper{padding:16px}}
+.top-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.logo-box{width:210px;max-width:100%;height:110px;border:1px solid #e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:14px;cursor:pointer;overflow:hidden;background:#fafafa;text-align:center}
+.logo-box img{max-width:100%;max-height:100%;object-fit:contain}
+.inv-title{text-align:right;min-width:0;flex:1}
+.inv-title h1{margin:0;font-size:clamp(26px,6vw,38px);letter-spacing:2px;font-weight:800;white-space:nowrap}
+.num-row{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:10px}
+.num-row input{width:130px;max-width:60vw;text-align:right}
+input,textarea{border:1px solid #d1d5db;border-radius:6px;padding:9px 10px;font-size:13.5px;width:100%;min-width:0;background:#fff;color:#111}
+textarea{resize:vertical}
+label.small{font-size:12.5px;color:#374151;display:block;margin:0 0 5px}
+.mid-row{display:block;margin-top:18px;margin-bottom:6px}
+.billship{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media(max-width:560px){.billship{grid-template-columns:minmax(0,1fr)}}
+.items-scroll{overflow-x:auto;margin-top:18px;border-radius:8px;display:block;clear:both}
+.items-head{background:var(--fa-dark);color:var(--fa-accent-light);border:1px solid var(--fa-accent-deep);border-radius:8px;display:grid;grid-template-columns:minmax(180px,1fr) 120px 70px 110px 110px 28px;gap:8px;padding:10px 12px;font-size:12.5px;font-weight:700;min-width:600px;align-items:center}
+.items-head>div{text-align:center}
+.items-head>div:first-child{text-align:left}
+.items-head>div:nth-child(4),.items-head>div:nth-child(5){text-align:right}
+.item-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 70px 110px 110px 28px;gap:8px;margin-top:8px;padding:0 12px;align-items:center;min-width:600px;position:relative}
+.item-row input{text-align:center}
+.item-row>div:first-child input{text-align:left}
+.item-row .rate-wrap input{text-align:left}
+.item-row select{text-align:center;text-align-last:center}
+.del-line{background:none;border:none;color:#dc2626;cursor:pointer;font-size:16px;padding:0;line-height:1}
+.item-row select{border:1px solid #d1d5db;border-radius:6px;padding:9px 6px;font-size:13px;width:100%;background:#fff}
+.rate-wrap{position:relative}
+.rate-wrap span{position:absolute;left:8px;top:9px;font-size:13px;color:#6b7280}
+.rate-wrap input{padding-left:26px}
+.amt-val{font-size:13px;font-weight:700;text-align:right}
+.add-line{margin-top:10px;background:#f3f4f6;border:none;width:100%;padding:11px;border-radius:6px;cursor:pointer;font-size:13.5px;color:#111}
+.add-line:hover{background:#e5e7eb}
+.bottom-row{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;margin-top:22px}
+@media(max-width:768px){.bottom-row{grid-template-columns:minmax(0,1fr)}}
+.totals div{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13.5px}
+.totals .grand{border-top:1px solid var(--fa-accent-light);margin-top:6px;padding-top:10px;font-weight:800;font-size:14px}
+.totals .balance{font-size:16px;font-weight:800;margin-top:6px;color:var(--fa-dark)}
+.linkbtn{background:none;border:none;color:var(--fa-dark);font-size:13px;cursor:pointer;font-weight:600;padding:4px 8px 4px 0}
+.taxrow{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.taxrow input{width:80px;text-align:right}
+.paybox{margin-top:20px;border:1px solid var(--fa-accent-light);border-radius:10px;padding:12px;display:flex;gap:14px;align-items:center;background:#f0fdf4;flex-wrap:wrap;page-break-inside:avoid}
+#qrcode img,#qrcode canvas{width:110px!important;height:110px!important}
+.upi-id{font-weight:800;font-size:16px;color:var(--fa-dark)}
+.billship textarea{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;min-height:72px}
+@media print{
+  body{background:#fff}
+  .topbar,.side,.add-line,.del-line,.linkbtn{display:none!important}
+  .layout{display:block;padding:0;max-width:none}
+  .paper{border:none;box-shadow:none;padding:12px!important;page-break-inside:avoid}
+  .billship{grid-template-columns:1fr 1fr;page-break-inside:avoid}
+  #billTo{border:1.5px solid var(--fa-dark)!important;background:#f0fdf4!important}
+  .items-scroll,.bottom-row,.paybox{page-break-inside:avoid}
+  .totals .balance{font-size:15px}
+}
+/* Sidebar */
+.side{display:grid;gap:10px;position:sticky;top:70px}
+.btn{border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;width:100%}
+.btn-white{background:#fff;border:1px solid var(--fa-accent-light);color:var(--fa-dark)}
+.btn-dark{background:var(--fa-dark);color:#fff}
+.btn-blue{background:var(--fa-dark);color:var(--fa-accent-light);border:1px solid var(--fa-dark)}
+.btn-wa{background:var(--fa-accent);color:var(--fa-darker)}
+details.settings{background:#fff;border:1px solid var(--fa-accent-light);border-radius:8px;padding:10px 12px}
+details.settings summary{cursor:pointer;font-size:13.5px;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+details.settings summary::-webkit-details-marker{display:none}
+.muted{font-size:12px;color:var(--fa-muted)}
+@page{size:A4;margin:12mm}
+/* Sidebar */
+</style>
+</head>
+<body>
+<div class="topbar"><div><b>Invoice Generator</b></div></div>
+
+<div class="layout">
+  <!-- INVOICE PAPER -->
+  <div class="paper" id="invoice">
+    <div class="top-row">
+      <div><div class="logo-box" id="logoBox" onclick="document.getElementById('logoInput').click()">+ Add Your Logo</div>
+        <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="loadLogo(event)"/>
+        <div class="muted logo-hint" style="margin-top:4px">Click logo to change • <a href="#" onclick="clearLogo();return false;">reset to default</a></div>
+      </div>
+      <div class="inv-title"><h1>INVOICE</h1>
+        <div class="num-row"><label class="small" style="margin:0">Invoice</label><input id="invNo" readonly title="Auto: INV_Customer_Date" style="width:230px" value="INV_Customer"/></div>
+        <div class="num-row"><label class="small" style="margin:0">Date</label><input id="invDate" type="date" style="width:150px"/></div>
+      </div>
+    </div>
+
+    <div class="mid-row">
+        <label class="small">From</label>
+        <input id="bizName" placeholder="Your Business Name"/>
+        <div class="billship" style="margin-top:14px">
+          <div><label class="small">Bill To</label><textarea id="billTo" rows="3" placeholder="Who is this to?"></textarea></div>
+          <div><label class="small">Ship To</label><textarea id="shipTo" rows="3" placeholder="(optional)"></textarea></div>
+        </div>
+        <div class="billship" style="margin-top:10px">
+          <div><input id="custPhone" placeholder="Phone / WhatsApp (9198...)" /></div>
+          <div><input id="custEmail" placeholder="Customer email" /></div>
+        </div>
+    </div>
+
+    <div class="items-scroll"><div class="items-head"><div>Item</div><div>Material</div><div>Quantity</div><div>Each Pc</div><div>Amount</div><div></div></div>
+    <div id="items"></div></div>
+    <button class="add-line" onclick="addItem()">+ Line Item</button>
+
+    <div class="bottom-row">
+      <div>
+        <label class="small">Notes</label>
+        <textarea id="notes" rows="3" placeholder="Notes - any relevant information not already covered"></textarea>
+        <div style="margin-top:14px"><label class="small">Terms</label>
+        <textarea id="terms" rows="3" placeholder="Terms and conditions - late fees, payment methods, delivery schedule"></textarea></div>
+        <div class="paybox">
+          <div id="qrcode"></div>
+          <div><div class="muted"><b>SCAN & PAY VIA UPI</b></div><div class="upi-id" id="p_upi"></div>
+          <div style="font-size:13px">Payable: <b id="p_payAmt">₹0.00</b></div>
+          <div class="muted">Add invoice no. in UPI remark</div></div>
+        </div>
+      </div>
+      <div class="totals">
+        <div><span>Subtotal</span><b id="t_sub">₹0.00</b></div>
+        <div><span>Tax</span><span class="taxrow"><input id="taxPct" type="number" value="0" min="0" oninput="render()"/> %</span></div>
+        <div id="taxAmtRow" style="display:none"><span id="taxLabel">Tax amount</span><span id="t_tax">₹0.00</span></div>
+        <div><span><button class="linkbtn" id="discBtn" onclick="toggleDisc()">+ Discount</button><button class="linkbtn" onclick="toggleShip()">+ Shipping</button></span></div>
+        <div id="discRow" style="display:none"><span>Discount ₹</span><input id="discount" type="number" value="0" style="width:110px;text-align:right" oninput="render()"/></div>
+        <div id="shipRow" style="display:none"><span>Shipping ₹</span><input id="shipping" type="number" value="0" style="width:110px;text-align:right" oninput="render()"/></div>
+        <div class="grand"><span>Total</span><span id="t_total">₹0.00</span></div>
+        <div><span>Amount Paid</span><span class="rate-wrap" style="width:130px"><span>Rs</span><input id="amtPaid" type="number" value="0" style="text-align:right" oninput="render()"/></span></div>
+        <div class="balance"><span>Balance Due</span><span id="t_bal">₹0.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="side">
+    <button class="btn btn-white" onclick="downloadPDF()">⬇ Download</button>
+    <button class="btn btn-wa" onclick="sendWhatsApp()">📲 WhatsApp</button>
+    <button class="btn btn-blue" onclick="sendEmail()">✉ Email</button>
+    <details class="settings" id="bizDetails">
+      <summary><span>Invoice Settings</span><span>⌄</span></summary>
+      <label class="small" style="margin-top:10px">Business Phone</label><input id="bizPhone" placeholder="Business Phone"/>
+      <label class="small">Business Email</label><input id="bizEmail" placeholder="Business Email"/>
+      <label class="small">Business Address</label><input id="bizAddr" placeholder="Address"/>
+      <label class="small">UPI ID</label><input id="upiId" placeholder="UPI ID (you@upi)"/>
+      <label class="small">Currency</label><input id="currency" value="₹"/>
+      <button class="btn btn-dark" style="margin-top:10px" onclick="saveBizDefault()">Save defaults</button>
+      <div class="muted">Business info auto-saved on this PC. Section stays collapsible.</div>
+    </details>
+    <div class="muted">Invoice ID auto-builds as INV_Customer_Date.<br>WhatsApp no. format: 91XXXXXXXXXX</div>
+  </div>
+</div>
+
+<script>
+const LS_BIZ='invgen_biz_v1',LS_LOGO='invgen_logo_v1';
+const DEFAULT_BIZ={bizName:'',bizPhone:'',bizEmail:'',bizAddr:'',upiId:''};
+document.getElementById('invDate').valueAsDate=new Date();
+// Material is label-only — pricing is fully manual (no auto price per material).
+let items=[{desc:'',qty:1,each:0,material:'PLA+'}];
+let discOn=false,shipOn=false;
+
+/* logo */
+function loadLogo(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{localStorage.setItem(LS_LOGO,r.result);showLogo();};r.readAsDataURL(f);}
+function showLogo(){const l=localStorage.getItem(LS_LOGO);const d='logo.png';document.getElementById('logoBox').innerHTML=l?`<img src="${l}"/>`:`<img src="${d}" onerror="this.outerHTML='+ Add Your Logo'"/>`;}
+function clearLogo(){localStorage.removeItem(LS_LOGO);showLogo();}
+
+/* biz */
+function loadBiz(){try{return {...DEFAULT_BIZ,...(JSON.parse(localStorage.getItem(LS_BIZ)||'{}'))};}catch(e){return{...DEFAULT_BIZ};}}
+function applyBiz(){const b=loadBiz();bizName.value=b.bizName;bizPhone.value=b.bizPhone;bizEmail.value=b.bizEmail;bizAddr.value=b.bizAddr||'';upiId.value=b.upiId;}
+function saveBizDefault(){localStorage.setItem(LS_BIZ,JSON.stringify({bizName:bizName.value,bizPhone:bizPhone.value,bizEmail:bizEmail.value,bizAddr:bizAddr.value,upiId:upiId.value}));document.getElementById('bizDetails').open=false;render();alert('Defaults saved ✓');}
+
+/* Invoice ID: INV_CustomerName_Date (no running number) */
+function sanitizeCustomer(s){
+  const first=String(s||'').split('\n')[0].trim()||'Customer';
+  return first.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,30)||'Customer';
+}
+function fmtInvDate(d){
+  const v=d||invDate.value||new Date().toISOString().slice(0,10);
+  return String(v).slice(0,10);
+}
+function buildInvNo(){
+  return 'INV_'+sanitizeCustomer(billTo.value)+'_'+fmtInvDate();
+}
+function currentInvNo(){
+  const v=String(invNo.value||'').trim();
+  return v||buildInvNo();
+}
+function refreshInvNo(){
+  invNo.value=buildInvNo();
+}
+
+/* calc */
+const each=r=>{ if(r.each!=null) return +r.each||0; return (+r.gram||0)*(+r.rate||0); };
+const amt=r=>(+r.qty||0)*each(r);
+function calc(){
+  const cur=document.getElementById('currency').value||'₹';
+  const sub=items.reduce((s,r)=>s+amt(r),0);
+  const taxP=+taxPct.value||0, tax=sub*taxP/100;
+  const d=discOn?+discount.value||0:0, sh=shipOn?+shipping.value||0:0;
+  const total=Math.max(0,sub+tax-d+sh), paid=+amtPaid.value||0, bal=Math.max(0,total-paid);
+  return {cur,sub,tax,total,paid,bal,d,sh,taxP};
+}
+function addItem(){items.push({desc:'',qty:1,each:0,material:'PLA+'});renderEditor();render();}
+function delItem(i){if(items.length===1)items[0]={desc:'',qty:1,each:0,material:'PLA+'};else items.splice(i,1);renderEditor();render();}
+function setMaterial(i,m){items[i].material=m;render();}
+function onEachInput(i,v){items[i].each=v;
+  const a=document.getElementById('amt-'+i);
+  if(a)a.textContent='₹'+amt(items[i]).toFixed(2);
+  render();}
+function toggleDisc(){discOn=!discOn;document.getElementById('discRow').style.display=discOn?'flex':'none';render();}
+function toggleShip(){shipOn=!shipOn;document.getElementById('shipRow').style.display=shipOn?'flex':'none';render();}
+function renderEditor(){
+  const box=document.getElementById('items');box.innerHTML='';
+  items.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='item-row';
+    d.innerHTML=`<div><input placeholder="Description of item/service..." value="${(r.desc||'').replace(/"/g,'&quot;')}" oninput="items[${i}].desc=this.value;render()"/></div>
+    <div><select id="mat-${i}" onchange="setMaterial(${i},this.value)">
+      <option ${r.material==='PLA+'?'selected':''}>PLA+</option>
+      <option ${r.material==='PETG'?'selected':''}>PETG</option>
+      <option ${r.material==='Custom'?'selected':''}>Custom</option>
+    </select></div>
+    <div><input type="number" min="0" value="${r.qty}" oninput="items[${i}].qty=this.value;render();document.getElementById('amt-'+i).textContent='₹'+amt(items[${i}]).toFixed(2)"/></div>
+    <div class="rate-wrap"><span>Rs</span><input type="number" min="0" step="1" value="${each(r).toFixed(2)}" oninput="onEachInput(${i},this.value)"/></div>
+    <div class="amt-val" id="amt-${i}">₹${amt(r).toFixed(2)}</div>
+    <div><button class="del-line" onclick="delItem(${i})" title="Remove">×</button></div>`;
+    box.appendChild(d);
+  });
+}
+function render(){
+  const t=calc(),c=t.cur;
+  t_sub.textContent=`${c}${t.sub.toFixed(2)}`;
+  document.getElementById('taxAmtRow').style.display=t.taxP>0?'flex':'none';
+  t_tax.textContent=`${c}${t.tax.toFixed(2)}`;
+  t_total.textContent=`${c}${t.total.toFixed(2)}`;
+  t_bal.textContent=`${c}${t.bal.toFixed(2)}`;
+  p_upi.textContent=upiId.value||'';
+  p_payAmt.textContent=`${c}${t.bal.toFixed(2)}`;
+  const qr=document.getElementById('qrcode');qr.innerHTML='';
+  refreshInvNo();
+  try{new QRCode(qr,{text:`upi://pay?pa=${upiId.value}&pn=${encodeURIComponent(bizName.value)}&am=${t.bal.toFixed(2)}&cu=INR&tn=${currentInvNo()}`,width:110,height:110});}catch(e){}
+}
+
+/* Invoice data (built fresh each time — nothing is stored) */
+function collect(){
+  const t=calc();
+  const name=currentInvNo();
+  return {id:'id_'+Date.now(),invNo:name,num:0,
+    date:invDate.value,due:'',terms:document.getElementById('payTerms')?.value||'',po:document.getElementById('poNo')?.value||'',
+    biz:{name:bizName.value,phone:bizPhone.value,email:bizEmail.value,addr:bizAddr.value,upi:upiId.value},
+    bill:billTo.value,ship:shipTo.value,custPhone:custPhone.value,custEmail:custEmail.value,
+    items:JSON.parse(JSON.stringify(items)),notes:notes.value,termsC:terms.value,
+    sub:+t.sub.toFixed(2),tax:+t.tax.toFixed(2),total:+t.total.toFixed(2),paid:+t.paid.toFixed(2),bal:+t.bal.toFixed(2),savedAt:new Date().toISOString()};
+  }
+/* send */
+function invText(){
+  const t=calc();
+  const lines=items.map((r,i)=>`${i+1}. ${r.desc||'Item'} [${r.material||''}] - Qty:${r.qty} × Rs.${each(r).toFixed(2)} = Rs.${amt(r).toFixed(2)}`);
+  return {t,txt:`*INVOICE ${currentInvNo()}*%0A${bizName.value} (${bizPhone.value})%0ADate: ${invDate.value}%0ABill To: ${billTo.value}%0A${shipTo.value?'Ship To: '+shipTo.value+'%0A':''}----------------%0A${lines.join('%0A')}%0A----------------%0ASubtotal: Rs.${t.sub.toFixed(2)}%0ATax: Rs.${t.tax.toFixed(2)}%0ATotal: Rs.${t.total.toFixed(2)}%0APaid: Rs.${t.paid.toFixed(2)}%0A*Balance Due: Rs.${t.bal.toFixed(2)}*%0A%0APay UPI: ${upiId.value}`};
+}
+function sendWhatsApp(){let ph=custPhone.value.replace(/[^0-9]/g,'');if(!ph){alert('Enter customer WhatsApp number first');return;}window.open(`https://wa.me/${ph}?text=${invText().txt}`,'_blank');}
+async function buildPdfBase64(){
+  try{const pdf=await makePdfVector();return pdf.output('datauristring').split(',')[1];}
+  catch(e){console.error('PDF build failed:',e);return null;}
+}
+/* ---------- PDF engine: HQ VECTOR (crisp text, not a screenshot) ----------
+   Why vector: html2canvas rasterizes text to JPEG/PNG -> blurry on zoom/print.
+   This draws text/shapes natively with jsPDF -> razor-sharp, selectable, small file.
+   Only logo + QR are embedded as PNG images (high-res). Rs. used instead of
+   rupee glyph because jsPDF built-in helvetica has no U+20B9. */
+const PDF_MARGIN_MM=14;
+function pdfRs(n){ return 'Rs. '+Number(n||0).toFixed(2); }
+/* jsPDF built-in helvetica is WinAnsi-only: map Rs symbol + drop unprintable glyphs
+   (user text often contains U+20B9 copied from the UI) */
+function pdfSafe(s){
+  return String(s==null?'':s).replace(/₹/g,'Rs. ').replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026]/g,'');
+}
+function loadImgInfo(src){
+  return new Promise(res=>{
+    const im=new Image(); im.onload=()=>res({w:im.naturalWidth||1,h:im.naturalHeight||1});
+    im.onerror=()=>res({w:1,h:1}); im.src=src;
+  });
+}
+async function getLogoDataURL(){
+  let url=null;
+  try{
+    const ls=localStorage.getItem(LS_LOGO);
+    if(ls&&ls.startsWith('data:image')) url=ls;
+  }catch(e){}
+  if(!url){
+    try{
+      const r=await fetch('logo.png');
+      if(r.ok){
+        const b=await r.blob();
+        url=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=()=>res(null);fr.readAsDataURL(b);});
+      }
+    }catch(e){}
+  }
+  if(!url) return null;
+  /* Downscale huge logos (the default file is ~4MB) — print width is ~52mm, so 560px is plenty.
+     Keeps the PDF small enough to email. White-filled JPEG (page background is white). */
+  try{
+    const im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res(null);i.src=url;});
+    if(im&&im.naturalWidth>560){
+      const sc=560/im.naturalWidth;
+      const c=document.createElement('canvas');
+      c.width=560; c.height=Math.max(1,Math.round(im.naturalHeight*sc));
+      const g=c.getContext('2d');
+      g.fillStyle='#ffffff'; g.fillRect(0,0,c.width,c.height);
+      g.drawImage(im,0,0,c.width,c.height);
+      return c.toDataURL('image/jpeg',0.9);
+    }
+  }catch(e){}
+  return url;
+}
+async function getQrDataURL(text){
+  const size=256;
+  try{
+    const tmp=document.createElement('div');
+    tmp.style.cssText='position:fixed;left:-9999px;top:0;width:'+size+'px;height:'+size+'px;background:#fff;';
+    document.body.appendChild(tmp);
+    // eslint-disable-next-line no-undef
+    new QRCode(tmp,{text:text,width:size,height:size,correctLevel:QRCode.CorrectLevel.M});
+    await new Promise(r=>setTimeout(r,350));
+    let url=null;
+    const cv=tmp.querySelector('canvas');
+    if(cv&&cv.width) url=cv.toDataURL('image/png');
+    else { const im=tmp.querySelector('img'); if(im&&im.src) url=im.src; }
+    tmp.remove();
+    if(url) return url;
+  }catch(e){}
+  try{
+    const cv=document.querySelector('#qrcode canvas');
+    if(cv&&cv.width) return cv.toDataURL('image/png');
+    const im=document.querySelector('#qrcode img');
+    if(im&&im.src) return im.src;
+  }catch(e){}
+  return null;
+}
+async function makePdfVector(){
+  const NS=window.jspdf||{};
+  if(!NS.jsPDF) throw new Error('PDF library failed to load (check internet)');
+  render();
+  const t=calc();
+  const biz={name:pdfSafe(bizName.value||''),phone:pdfSafe(bizPhone.value||''),email:pdfSafe(bizEmail.value||''),addr:pdfSafe(bizAddr.value||''),upi:pdfSafe(upiId.value||'')};
+  const invNoStr=currentInvNo();
+  const invDateStr=invDate.value||new Date().toISOString().slice(0,10);
+  const pdf=new NS.jsPDF({unit:'mm',format:'a4',orientation:'portrait',compress:true});
+  const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+  const M=PDF_MARGIN_MM, CW=pw-2*M;
+  const DARK=[15,61,38], MUTED=[110,125,112], FAINT=[211,236,216], SOFT=[240,253,244];
+  pdf.setProperties({title:invNoStr+' - '+biz.name,author:biz.name,subject:'Invoice'});
+  let y=M, page=1;
+  const pages=[];
+  function footer(cur,total){
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); pdf.setTextColor(132,161,140);
+    pdf.text(biz.name+'  |  '+invNoStr+'  |  Page '+cur+' of '+total,pw/2,ph-7,{align:'center'});
+  }
+  function need(h){ if(y+h>ph-M-10){ pdf.addPage(); y=M; return true; } return false; }
+
+  /* Header: logo left, INVOICE right */
+  const logoURL=await getLogoDataURL();
+  const headH=28;
+  if(logoURL){
+    try{
+      const info=await loadImgInfo(logoURL);
+      const boxW=52, boxH=24;
+      const r=Math.min(boxW/info.w,boxH/info.h);
+      const dw=info.w*r, dh=info.h*r;
+      pdf.addImage(logoURL,logoURL.indexOf('data:image/jpeg')===0?'JPEG':'PNG',M,y,dw,dh);
+    }catch(e){}
+  } else {
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(...DARK);
+    pdf.text(biz.name,M,y+8);
+  }
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(26); pdf.setTextColor(...DARK);
+  pdf.text('INVOICE',M+CW,y+10,{align:'right'});
+  pdf.setFontSize(10);
+  pdf.text(invNoStr,M+CW,y+17,{align:'right'});
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(...MUTED);
+  pdf.text('Date: '+invDateStr,M+CW,y+22.5,{align:'right'});
+  y+=headH;
+  pdf.setDrawColor(...FAINT); pdf.setLineWidth(0.4); pdf.line(M,y,M+CW,y); y+=4;
+
+  /* Biz line */
+  pdf.setFontSize(8.5); pdf.setTextColor(...MUTED);
+  const bizLine=[biz.name,biz.phone,biz.email,biz.addr].filter(Boolean).join('  •  ');
+  const bizLines=pdf.splitTextToSize(bizLine,CW);
+  pdf.text(bizLines,M,y); y+=bizLines.length*4+2;
+
+  /* Bill / Ship boxes */
+  const boxGap=5, boxW=(CW-boxGap)/2;
+  const billTxt=pdfSafe([(billTo.value||'-'),custPhone.value?('Phone: '+custPhone.value):'',custEmail.value||''].filter(Boolean).join('\n'));
+  const shipTxt=pdfSafe(shipTo.value||'(—)');
+  const billLines=pdf.splitTextToSize(billTxt,boxW-8);
+  const shipLines=pdf.splitTextToSize(shipTxt,boxW-8);
+  const boxH=Math.max(billLines.length,shipLines.length)*4.2+12;
+  need(boxH);
+  const by=y;
+  pdf.setFillColor(...SOFT); pdf.setDrawColor(...DARK); pdf.setLineWidth(0.5);
+  pdf.roundedRect(M,by,boxW,boxH,1.5,1.5,'FD');
+  pdf.setFillColor(255,255,255);
+  pdf.roundedRect(M+boxW+boxGap,by,boxW,boxH,1.5,1.5,'FD');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(...DARK);
+  pdf.text('BILL TO',M+4,by+5.5); pdf.text('SHIP TO',M+boxW+boxGap+4,by+5.5);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(20,20,20);
+  pdf.text(billLines,M+4,by+10.5); pdf.text(shipLines,M+boxW+boxGap+4,by+10.5);
+  y=by+boxH+5;
+
+  /* Items table (vector) */
+  const cNo=12, cQty=16, cRate=30, cAmt=34, cDesc=CW-cNo-cQty-cRate-cAmt;
+  const X=[M,M+cNo,M+cNo+cDesc,M+cNo+cDesc+cQty,M+cNo+cDesc+cQty+cRate];
+  function tableHead(yy){
+    pdf.setFillColor(...DARK);
+    pdf.rect(M,yy,CW,8,'F');
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5); pdf.setTextColor(211,236,216);
+    pdf.text('#',X[0]+2,yy+5.5);
+    pdf.text('ITEM / MATERIAL',X[1]+2,yy+5.5);
+    pdf.text('QTY',X[2]+cQty-2,yy+5.5,{align:'right'});
+    pdf.text('RATE',X[3]+cRate-2,yy+5.5,{align:'right'});
+    pdf.text('AMOUNT',X[4]+cAmt-2,yy+5.5,{align:'right'});
+  }
+  need(8+10);
+  tableHead(y); y+=8;
+  pdf.setFontSize(9);
+  items.forEach((r,i)=>{
+    const desc=pdfSafe(r.desc||'Item');
+    const sub=pdfSafe((r.material||'')+'  •  Qty '+(r.qty||0)+' x '+pdfRs(each(r)));
+    const dLines=pdf.splitTextToSize(desc,cDesc-4);
+    const rh=Math.max(11,dLines.length*4.4+8);
+    if(y+rh>ph-M-10){ pdf.addPage(); y=M; tableHead(y); y+=8; }
+    if(i%2===0){ pdf.setFillColor(...SOFT); pdf.rect(M,y,CW,rh,'F'); }
+    pdf.setDrawColor(...FAINT); pdf.setLineWidth(0.25);
+    pdf.rect(M,y,CW,rh,'D');
+    [1,2,3,4].forEach(k=>pdf.line(X[k],y,X[k],y+rh));
+    pdf.setTextColor(20,20,20); pdf.setFont('helvetica','bold');
+    pdf.text(String(i+1),X[0]+2,y+5.5);
+    pdf.text(dLines,X[1]+2,y+5.5);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); pdf.setTextColor(...MUTED);
+    pdf.text(pdf.splitTextToSize(sub,cDesc-4),X[1]+2,y+5.5+dLines.length*4.4);
+    pdf.setFontSize(9); pdf.setTextColor(20,20,20);
+    pdf.text(String(r.qty||0),X[2]+cQty-2,y+5.5,{align:'right'});
+    pdf.text(pdfRs(each(r)),X[3]+cRate-2,y+5.5,{align:'right'});
+    pdf.setFont('helvetica','bold');
+    pdf.text(pdfRs(amt(r)),X[4]+cAmt-2,y+5.5,{align:'right'});
+    y+=rh;
+  });
+
+  /* Totals + notes area */
+  y+=4;
+  const totW=74, totX=M+CW-totW, leftW=CW-totW-8;
+  const rows=[];
+  rows.push(['Subtotal',pdfRs(t.sub),false]);
+  if(t.taxP>0) rows.push(['Tax '+t.taxP+'%',pdfRs(t.tax),false]);
+  if(t.d>0) rows.push(['Discount','- '+pdfRs(t.d),false]);
+  if(t.sh>0) rows.push(['Shipping',pdfRs(t.sh),false]);
+  rows.push(['TOTAL',pdfRs(t.total),true]);
+  rows.push(['Amount Paid',pdfRs(t.paid),false]);
+  const totH=rows.length*6+12;
+  need(Math.max(totH,30));
+  /* left: notes/terms (paginated line-by-line so long text never runs off-page) */
+  let ly=y;
+  function para(title,text){
+    if(!text) return;
+    if(ly+10>ph-M-8){ pdf.addPage(); ly=M; }
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(8.5); pdf.setTextColor(...DARK);
+    pdf.text(title,M,ly); ly+=4.5;
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8.5); pdf.setTextColor(40,40,40);
+    pdf.splitTextToSize(pdfSafe(text),leftW).forEach(ln=>{
+      if(ly+5>ph-M-8){ pdf.addPage(); ly=M; }
+      pdf.text(ln,M,ly); ly+=4;
+    });
+    ly+=3;
+  }
+  para('Notes',notes.value);
+  para('Terms',terms.value);
+  /* right: totals */
+  let ty=y;
+  pdf.setFontSize(9);
+  rows.forEach(([k,v,bold])=>{
+    if(k==='TOTAL'){ pdf.setDrawColor(...FAINT); pdf.line(totX,ty+1,totX+totW,ty+1); ty+=2; }
+    pdf.setFont('helvetica',bold?'bold':'normal'); pdf.setTextColor(...(bold?DARK:[40,40,40]));
+    pdf.text(k,totX,ty+4.5);
+    pdf.text(v,totX+totW,ty+4.5,{align:'right'});
+    ty+=6;
+  });
+  /* balance pill */
+  pdf.setFillColor(...DARK);
+  pdf.roundedRect(totX,ty+1,totW,9,1.5,1.5,'F');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(255,255,255);
+  pdf.text('Due: '+pdfRs(t.bal),totX+totW/2,ty+7.5,{align:'center'});
+  ty+=12;
+  y=Math.max(ly,ty)+4;
+
+  /* Pay box */
+  const payH=36;
+  need(payH);
+  const py=y;
+  pdf.setFillColor(...SOFT); pdf.setDrawColor(...FAINT); pdf.setLineWidth(0.4);
+  pdf.roundedRect(M,py,CW,payH,2,2,'FD');
+  const upiText='upi://pay?pa='+biz.upi+'&pn='+encodeURIComponent(biz.name)+'&am='+t.bal.toFixed(2)+'&cu=INR&tn='+invNoStr;
+  const qrURL=await getQrDataURL(upiText);
+  if(qrURL){ try{ pdf.addImage(qrURL,'PNG',M+4,py+4,28,28); }catch(e){} }
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(...MUTED);
+  pdf.text('SCAN & PAY VIA UPI',M+36,py+9);
+  pdf.setFontSize(12); pdf.setTextColor(...DARK);
+  pdf.text(biz.upi,M+36,py+16);
+  pdf.setFontSize(10);
+  pdf.text('Payable: '+pdfRs(t.bal),M+36,py+22.5);
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(7.5); pdf.setTextColor(...MUTED);
+  pdf.text('Add invoice no. in UPI remark  •  Thank you for your business!',M+36,py+28);
+  y=py+payH+6;
+
+  const n=pdf.internal.getNumberOfPages();
+  for(let i=1;i<=n;i++){ pdf.setPage(i); footer(i,n); }
+  return pdf;
+}
+async function makePdfJs(){ return makePdfVector(); }
+function mailtoFallback(){
+  const{t,txt}=invText();
+  const body=decodeURIComponent(txt).split('%0A').join('\n');
+  window.location.href=`mailto:${custEmail.value}?subject=${encodeURIComponent(`Invoice ${currentInvNo()} from ${bizName.value} - Due Rs.${t.bal.toFixed(2)}`)}&body=${encodeURIComponent(body+'\n\nPay UPI: '+upiId.value+'\n(Attach downloaded PDF)')}`;
+}
+async function sendEmail(){
+  if(!custEmail.value){alert('Enter customer email');return;}
+  const btn=event&&event.target?event.target:null;
+  const oldTxt=btn?btn.textContent:null;
+  if(btn)btn.textContent='Sending...';
+  try{
+    const inv=collect();
+    const pdfBase64=await buildPdfBase64();
+    const r=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:custEmail.value,invoice:inv,pdfBase64,filename:`${inv.invNo}.pdf`})});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.error||'send failed');
+    alert('Email sent to '+custEmail.value+' ✓'+(pdfBase64?' (with PDF attached)':''));
+  }catch(e){
+    // Backend not running (opened via file://) → fall back to mail app
+    mailtoFallback();
+  }finally{if(btn)btn.textContent=oldTxt;}
+}
+async function downloadPDF(){
+  const btn=document.querySelector('.btn-white');
+  const old=btn?btn.textContent:null;
+  if(btn){btn.textContent='Please wait Building PDF...';btn.disabled=true;}
+  try{const pdf=await makePdfJs();pdf.save(currentInvNo()+'.pdf');}
+  catch(e){console.error(e);alert('PDF failed: '+(e.message||e));}
+  finally{if(btn){btn.textContent=old;btn.disabled=false;}}
+}
+
+/* init */
+showLogo();applyBiz();
+try{localStorage.removeItem('pylin_invoices_v1');localStorage.removeItem('pylin_counter_v1');}catch(e){} // one-time purge of legacy stored invoices
+(async () => {
+  invDate.valueAsDate=new Date();
+  refreshInvNo();
+  ['bizName','bizPhone','bizEmail','bizAddr','upiId','invDate','billTo','shipTo','custPhone','custEmail','notes','terms','taxPct'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',render);});
+  renderEditor();render();
+})();
+</script>
+</body>
+</html>

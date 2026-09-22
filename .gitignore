@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Secrets - never commit real credentials (see .env.example)
+.env
+
+# Local backups/exports
+invoices-backup.json
+invoices.csv
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
